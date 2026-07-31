@@ -1,0 +1,37 @@
+name: Java Microservice CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build application
+        run: mvn -B clean package
+
+      - name: Run unit tests
+        run: mvn -B test
+
+      - name: Build Docker image
+        run: docker build -t localhost:5000/java-microservice:${{ gitea.sha }} -t localhost:5000/java-microservice:latest .
+
+      - name: Login to private registry
+        run: echo "MySecureReg@123" | docker login localhost:5000 -u sonu --password-stdin
+
+      - name: Push Docker image
+        run: |
+          docker push localhost:5000/java-microservice:${{ gitea.sha }}
+          docker push localhost:5000/java-microservice:latest
