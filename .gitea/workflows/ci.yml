@@ -19,6 +19,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Install Maven
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq maven
+
       - name: Build application
         run: mvn -B clean package
 
