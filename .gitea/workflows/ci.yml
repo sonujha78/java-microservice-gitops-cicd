@@ -31,7 +31,8 @@ jobs:
         run: mvn -B test
 
       - name: Build Docker image
-        run: docker build -t localhost:5000/java-microservice:${{ gitea.sha }} -t localhost:5000/java-microservice:latest .
+        run: docker build -t localhost:5000/java-microservice:${{ gitea.sha }} \
+          -t localhost:5000/java-microservice:latest .
 
       - name: Login to private registry
         run: echo "MySecureReg@123" | docker login localhost:5000 -u sonu --password-stdin
@@ -40,3 +41,22 @@ jobs:
         run: |
           docker push localhost:5000/java-microservice:${{ gitea.sha }}
           docker push localhost:5000/java-microservice:latest
+
+      - name: Install Git and yq
+        run: |
+          apt-get install -y -qq git
+          curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Update GitOps repository with new image tag
+        env:
+          GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+        run: |
+          git config --global user.name "gitea-ci-bot"
+          git config --global user.email "ci-bot@example.com"
+          git clone http://sonu:${GITOPS_TOKEN}@host.docker.internal:3000/sonu/java-microservice-gitops.git gitops-repo
+          cd gitops-repo
+          yq -i '.image.tag = "${{ gitea.sha }}"' helm-chart/values.yaml
+          git add helm-chart/values.yaml
+          git commit -m "Update image tag to ${{ gitea.sha }} [ci-skip]" || echo "No changes to commit"
+          git push origin main
