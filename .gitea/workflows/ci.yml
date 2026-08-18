@@ -35,7 +35,9 @@ jobs:
           docker build -t localhost:5000/java-microservice:${{ gitea.sha }} -t localhost:5000/java-microservice:latest .
 
       - name: Login to private registry
-        run: echo "MySecureReg@123" | docker login localhost:5000 -u sonu --password-stdin
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: echo "$REGISTRY_PASSWORD" | docker login localhost:5000 -u sonu --password-stdin
 
       - name: Push Docker image
         run: |
